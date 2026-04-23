@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/static/app.css">
+  </head>
+  <body>
+    <div class="page-glow" aria-hidden="true"></div>
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">Mesa de lectura</p>
+        <div class="title-badge-row">
+          <h1>{{ title }}</h1>
+          <span id="modelStatusBadge" class="status-badge status-loading">Preparando modelo</span>
+        </div>
+        <p class="subtitle">
+          Carga una imagen y selecciona el área que quieres capturar.
+        </p>
+      </div>
+      <div class="status-card" aria-live="polite">
+        <p id="modelStatusText" class="status-copy">
+          En la primera ejecución el modelo puede tardar varios minutos en descargarse y calentarse.
+        </p>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="reader-stage" aria-labelledby="stageTitle">
+        <div class="stage-toolbar">
+          <div>
+            <p class="eyebrow">Entrada</p>
+            <h2 id="stageTitle">Imagen y recorte</h2>
+          </div>
+          <div class="button-row">
+            <button id="chooseFileButton" type="button" class="button button-primary">Cargar imagen</button>
+            <button id="clearImageButton" type="button" class="button button-ghost" disabled>Quitar imagen</button>
+            <button id="clipboardButton" type="button" class="button button-secondary">Pegar del clipboard</button>
+            <input id="fileInput" type="file" accept="image/*" hidden>
+          </div>
+        </div>
+
+        <div id="dropZone" class="drop-zone" tabindex="0" aria-label="Zona para arrastrar una imagen">
+          <p class="drop-title">Suelta una imagen aquí</p>
+          <p class="drop-copy">También puedes pegar una captura con <kbd>Ctrl</kbd> + <kbd>V</kbd>.</p>
+        </div>
+
+        <div id="canvasFrame" class="canvas-frame">
+          <div class="canvas-controls" aria-label="Controles de zoom">
+            <div class="zoom-strip">
+              <div class="zoom-group">
+                <button id="zoomOutButton" type="button" class="button button-secondary zoom-button" aria-label="Alejar imagen" disabled>−</button>
+                <button id="zoomResetButton" type="button" class="button button-ghost" disabled>Ajustar</button>
+                <button id="zoomInButton" type="button" class="button button-secondary zoom-button" aria-label="Acercar imagen" disabled>+</button>
+              </div>
+              <p id="imageMeta" class="image-meta">Sin imagen cargada.</p>
+            </div>
+            <output id="zoomValue" class="zoom-value" aria-live="polite">100%</output>
+          </div>
+          <div id="canvasViewport" class="canvas-viewport">
+            <canvas id="previewCanvas"></canvas>
+          </div>
+          <p class="canvas-tip">Arrastra dentro de la imagen para definir el recorte.</p>
+        </div>
+      </section>
+
+      <aside class="side-panel" aria-label="Controles y resultado OCR">
+        <section class="panel-block" aria-labelledby="selectionTitle">
+          <p class="eyebrow">Selección</p>
+          <h2 id="selectionTitle">Área activa</h2>
+          <dl class="selection-grid">
+            <div>
+              <dt>X</dt>
+              <dd id="selectionX">0</dd>
+            </div>
+            <div>
+              <dt>Y</dt>
+              <dd id="selectionY">0</dd>
+            </div>
+            <div>
+              <dt>Ancho</dt>
+              <dd id="selectionWidth">0</dd>
+            </div>
+            <div>
+              <dt>Alto</dt>
+              <dd id="selectionHeight">0</dd>
+            </div>
+          </dl>
+          <div class="button-stack">
+            <button id="ocrSelectionButton" type="button" class="button button-primary" disabled>OCR selección</button>
+            <button id="ocrFullButton" type="button" class="button button-secondary" disabled>OCR imagen completa</button>
+            <button id="clearSelectionButton" type="button" class="button button-ghost" disabled>Limpiar selección</button>
+          </div>
+        </section>
+
+        <section class="panel-block" aria-labelledby="outputTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Salida</p>
+              <h2 id="outputTitle">Texto extraído</h2>
+            </div>
+            <span id="requestMeta" class="request-meta">Sin peticiones</span>
+          </div>
+          <label class="sr-only" for="ocrOutput">Texto OCR</label>
+          <textarea id="ocrOutput" rows="12" spellcheck="false" placeholder="El texto reconocido aparecerá aquí."></textarea>
+          <div class="button-row">
+            <button id="copyOutputButton" type="button" class="button button-secondary">Copiar texto</button>
+            <button id="clearOutputButton" type="button" class="button button-ghost">Limpiar caja</button>
+          </div>
+          <p id="notice" class="notice" role="status" aria-live="polite">Carga una imagen para empezar.</p>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module" src="/static/app.js"></script>
+  </body>
+</html>
