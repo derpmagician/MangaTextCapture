@@ -400,6 +400,16 @@ kbd {
   gap: 10px;
 }
 
+.translation-block {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(31, 26, 21, 0.08);
+}
+
+.panel-heading-compact {
+  margin-bottom: 4px;
+}
+
 .request-meta {
   padding: 8px 12px;
   border-radius: 999px;
@@ -420,7 +430,21 @@ kbd {
   line-height: 1.6;
 }
 
+#translationOutput {
+  width: 100%;
+  min-height: 140px;
+  margin: 12px 0;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(31, 26, 21, 0.12);
+  resize: vertical;
+  background: rgba(255, 250, 241, 0.92);
+  color: var(--ink);
+  line-height: 1.6;
+}
+
 #ocrOutput:focus-visible,
+#translationOutput:focus-visible,
 .button:focus-visible {
   outline: 3px solid rgba(20, 99, 86, 0.28);
   outline-offset: 3px;

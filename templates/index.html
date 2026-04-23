@@ -105,9 +105,27 @@
           <label class="sr-only" for="ocrOutput">Texto OCR</label>
           <textarea id="ocrOutput" rows="12" spellcheck="false" placeholder="El texto reconocido aparecerá aquí."></textarea>
           <div class="button-row">
-            <button id="copyOutputButton" type="button" class="button button-secondary">Copiar texto</button>
-            <button id="clearOutputButton" type="button" class="button button-ghost">Limpiar caja</button>
+            <button id="translateOutputButton" type="button" class="button button-primary" disabled>Traducir al español</button>
+            <button id="copyOutputButton" type="button" class="button button-secondary">Copiar OCR</button>
+            <button id="clearOutputButton" type="button" class="button button-ghost">Limpiar OCR</button>
           </div>
+
+          <div class="translation-block" aria-labelledby="translationTitle">
+            <div class="panel-heading panel-heading-compact">
+              <div>
+                <p class="eyebrow">Traducción</p>
+                <h2 id="translationTitle">Texto traducido</h2>
+              </div>
+              <span id="translationMeta" class="request-meta">Sin traducciones</span>
+            </div>
+            <label class="sr-only" for="translationOutput">Texto traducido</label>
+            <textarea id="translationOutput" rows="8" spellcheck="false" placeholder="La traducción aparecerá aquí."></textarea>
+            <div class="button-row">
+              <button id="copyTranslationButton" type="button" class="button button-secondary" disabled>Copiar traducción</button>
+              <button id="clearTranslationButton" type="button" class="button button-ghost" disabled>Limpiar traducción</button>
+            </div>
+          </div>
+
           <p id="notice" class="notice" role="status" aria-live="polite">Carga una imagen para empezar.</p>
         </section>
       </aside>

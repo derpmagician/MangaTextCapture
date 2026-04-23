@@ -20,8 +20,14 @@ const elements = {
   ocrFullButton: document.querySelector("#ocrFullButton"),
   clearSelectionButton: document.querySelector("#clearSelectionButton"),
   ocrOutput: document.querySelector("#ocrOutput"),
+  translateOutputButton: document.querySelector("#translateOutputButton"),
   copyOutputButton: document.querySelector("#copyOutputButton"),
   clearOutputButton: document.querySelector("#clearOutputButton"),
+  translationTitle: document.querySelector("#translationTitle"),
+  translationMeta: document.querySelector("#translationMeta"),
+  translationOutput: document.querySelector("#translationOutput"),
+  copyTranslationButton: document.querySelector("#copyTranslationButton"),
+  clearTranslationButton: document.querySelector("#clearTranslationButton"),
   notice: document.querySelector("#notice"),
   modelStatusBadge: document.querySelector("#modelStatusBadge"),
   modelStatusText: document.querySelector("#modelStatusText"),
@@ -42,17 +48,24 @@ const state = {
   modelReady: false,
   modelLoading: true,
   modelError: null,
+  translationReady: false,
+  translationLoading: true,
+  translationError: null,
+  translationTargetLabel: "Español",
 };
 
 const DEFAULT_IMAGE_META = "Sin imagen cargada.";
 const DEFAULT_REQUEST_META = "Sin peticiones";
+const DEFAULT_TRANSLATION_META = "Sin traducciones";
 const DEFAULT_NOTICE = "Carga una imagen para empezar.";
+const STATUS_POLL_INTERVAL_MS = 4000;
 const BASE_PADDING = 28;
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.25;
 
 const canvasContext = elements.previewCanvas.getContext("2d");
+let statusPollTimerId = null;
 
 bootstrap();
 
@@ -60,8 +73,8 @@ function bootstrap() {
   bindEvents();
   updateZoomReadout();
   drawCanvas();
-  refreshModelStatus();
-  window.setInterval(refreshModelStatus, 4000);
+  ensureStatusPolling();
+  void refreshModelStatus();
 
   new ResizeObserver(() => {
     if (!state.image) {
@@ -122,11 +135,38 @@ function bindEvents() {
   elements.clearSelectionButton.addEventListener("click", clearSelection);
   elements.ocrSelectionButton.addEventListener("click", () => void submitOcrRequest({ selectionOnly: true }));
   elements.ocrFullButton.addEventListener("click", () => void submitOcrRequest({ selectionOnly: false }));
+  elements.translateOutputButton.addEventListener("click", () => void submitTranslationRequest());
+  elements.ocrOutput.addEventListener("input", handleOcrOutputInput);
   elements.copyOutputButton.addEventListener("click", () => void copyOutput());
   elements.clearOutputButton.addEventListener("click", () => {
     elements.ocrOutput.value = "";
+    clearTranslationOutput({ keepNotice: true });
     setNotice("neutral", "La caja de texto quedó vacía.");
   });
+  elements.copyTranslationButton.addEventListener("click", () => void copyTranslationOutput());
+  elements.clearTranslationButton.addEventListener("click", () => {
+    clearTranslationOutput({ keepNotice: true });
+    setNotice("neutral", "La traducción se limpió.");
+  });
+}
+
+function ensureStatusPolling() {
+  if (statusPollTimerId !== null) {
+    return;
+  }
+
+  statusPollTimerId = window.setInterval(() => {
+    void refreshModelStatus();
+  }, STATUS_POLL_INTERVAL_MS);
+}
+
+function stopStatusPolling() {
+  if (statusPollTimerId === null) {
+    return;
+  }
+
+  window.clearInterval(statusPollTimerId);
+  statusPollTimerId = null;
 }
 
 async function refreshModelStatus() {
@@ -140,27 +180,52 @@ async function refreshModelStatus() {
     state.modelReady = Boolean(payload.ready);
     state.modelLoading = Boolean(payload.loading);
     state.modelError = payload.error ?? null;
+    state.translationReady = Boolean(payload.translation?.ready);
+    state.translationLoading = Boolean(payload.translation?.loading);
+    state.translationError = payload.translation?.error ?? null;
+    state.translationTargetLabel = payload.translation?.targetLabel ?? "Español";
+    elements.translationTitle.textContent = `Traducción al ${state.translationTargetLabel.toLowerCase()}`;
+    elements.translateOutputButton.textContent = `Traducir al ${state.translationTargetLabel.toLowerCase()}`;
 
-    if (state.modelReady) {
-      elements.modelStatusBadge.textContent = "Modelo listo";
-      elements.modelStatusBadge.className = "status-badge status-ready";
-      elements.modelStatusText.textContent = "Carga tu imagen.";
-    } else if (state.modelError) {
-      elements.modelStatusBadge.textContent = "Error de modelo";
+    if (state.modelError) {
+      elements.modelStatusBadge.textContent = "Error de OCR";
       elements.modelStatusBadge.className = "status-badge status-error";
       elements.modelStatusText.textContent = state.modelError;
+    } else if (state.modelReady && state.translationError) {
+      elements.modelStatusBadge.textContent = "Traductor con error";
+      elements.modelStatusBadge.className = "status-badge status-error";
+      elements.modelStatusText.textContent = `OCR listo. El traductor al ${state.translationTargetLabel.toLowerCase()} falló: ${state.translationError}`;
+    } else if (state.modelReady && state.translationReady) {
+      elements.modelStatusBadge.textContent = "Modelos listos";
+      elements.modelStatusBadge.className = "status-badge status-ready";
+      elements.modelStatusText.textContent = `OCR y traducción al ${state.translationTargetLabel.toLowerCase()} disponibles.`;
+    } else if (state.modelReady) {
+      elements.modelStatusBadge.textContent = "OCR listo";
+      elements.modelStatusBadge.className = "status-badge status-loading";
+      elements.modelStatusText.textContent = `OCR listo. El traductor al ${state.translationTargetLabel.toLowerCase()} sigue cargando.`;
     } else {
-      elements.modelStatusBadge.textContent = "Preparando modelo";
+      elements.modelStatusBadge.textContent = "Preparando modelos";
       elements.modelStatusBadge.className = "status-badge status-loading";
       elements.modelStatusText.textContent = "La primera inicialización puede tardar varios minutos.";
+    }
+
+    if (!state.modelLoading && !state.translationLoading) {
+      stopStatusPolling();
+    } else {
+      ensureStatusPolling();
     }
   } catch (error) {
     state.modelReady = false;
     state.modelLoading = false;
     state.modelError = error instanceof Error ? error.message : "Backend no disponible.";
+    state.translationReady = false;
+    state.translationLoading = false;
+    state.translationError = null;
+    elements.translateOutputButton.textContent = "Traducir";
     elements.modelStatusBadge.textContent = "Backend caído";
     elements.modelStatusBadge.className = "status-badge status-error";
     elements.modelStatusText.textContent = state.modelError;
+    ensureStatusPolling();
   }
 
   updateControlState();
@@ -279,6 +344,7 @@ async function loadImageBlob(blob, sourceName) {
     elements.imageMeta.title = elements.imageMeta.textContent;
     elements.requestMeta.textContent = DEFAULT_REQUEST_META;
     elements.ocrOutput.value = "";
+    clearTranslationOutput({ keepNotice: true });
     setNotice("success", "Imagen cargada. Arrastra sobre la preview para seleccionar el área a reconocer.");
     updateSelectionReadout(null);
     updateZoomReadout();
@@ -469,6 +535,7 @@ function resetLoadedImage({ clearOutput, noticeTone, noticeMessage } = {}) {
 
   if (clearOutput) {
     elements.ocrOutput.value = "";
+    clearTranslationOutput({ keepNotice: true });
   }
 
   elements.canvasViewport.scrollTo({ left: 0, top: 0 });
@@ -497,6 +564,9 @@ function updateControlState() {
   const hasSelection = Boolean(state.selection);
   const canRequest = hasImage && state.modelReady && !state.busy;
   const canAdjustImage = hasImage && !state.busy;
+  const hasOcrText = Boolean(elements.ocrOutput.value.trim());
+  const hasTranslatedText = Boolean(elements.translationOutput.value.trim());
+  const canTranslate = hasOcrText && state.translationReady && !state.busy;
 
   elements.chooseFileButton.disabled = state.busy;
   elements.clipboardButton.disabled = state.busy;
@@ -507,7 +577,11 @@ function updateControlState() {
   elements.zoomOutButton.disabled = !(canAdjustImage && state.zoomLevel > MIN_ZOOM);
   elements.zoomResetButton.disabled = !(canAdjustImage && state.zoomLevel !== 1);
   elements.zoomInButton.disabled = !(canAdjustImage && state.zoomLevel < MAX_ZOOM);
-  elements.copyOutputButton.disabled = !elements.ocrOutput.value.trim();
+  elements.translateOutputButton.disabled = !canTranslate;
+  elements.copyOutputButton.disabled = !hasOcrText;
+  elements.clearOutputButton.disabled = !(hasOcrText && !state.busy);
+  elements.copyTranslationButton.disabled = !hasTranslatedText;
+  elements.clearTranslationButton.disabled = !(hasTranslatedText && !state.busy);
 }
 
 function changeZoom(delta) {
@@ -572,6 +646,7 @@ async function submitOcrRequest({ selectionOnly }) {
     }
 
     elements.ocrOutput.value = payload.text ?? "";
+    clearTranslationOutput({ keepNotice: true });
     elements.requestMeta.textContent = `${payload.elapsedMs ?? 0} ms`;
     if (elements.ocrOutput.value.trim()) {
       setNotice("success", "OCR completado. El texto ya está listo para copiar.");
@@ -581,6 +656,54 @@ async function submitOcrRequest({ selectionOnly }) {
   } catch (error) {
     elements.requestMeta.textContent = "Error";
     const message = error instanceof Error ? error.message : "No se pudo completar OCR.";
+    setNotice("error", message);
+  } finally {
+    state.busy = false;
+    updateControlState();
+  }
+}
+
+async function submitTranslationRequest() {
+  const sourceText = elements.ocrOutput.value.trim();
+  if (!sourceText) {
+    setNotice("error", "No hay texto OCR para traducir.");
+    return;
+  }
+
+  if (!state.translationReady) {
+    setNotice("error", "El traductor todavía no está listo.");
+    return;
+  }
+
+  state.busy = true;
+  updateControlState();
+  elements.translationMeta.textContent = "Traduciendo";
+  setNotice("neutral", `Traduciendo al ${state.translationTargetLabel.toLowerCase()}...`);
+
+  try {
+    const response = await fetch("/api/translate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text: sourceText }),
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.detail ?? "La petición de traducción falló.");
+    }
+
+    elements.translationOutput.value = payload.text ?? "";
+    elements.translationMeta.textContent = `${payload.elapsedMs ?? 0} ms`;
+    if (elements.translationOutput.value.trim()) {
+      setNotice("success", `Traducción completada al ${state.translationTargetLabel.toLowerCase()}.`);
+    } else {
+      setNotice("error", "La traducción terminó, pero no devolvió texto.");
+    }
+  } catch (error) {
+    elements.translationMeta.textContent = "Error";
+    const message = error instanceof Error ? error.message : "No se pudo completar la traducción.";
     setNotice("error", message);
   } finally {
     state.busy = false;
@@ -639,6 +762,35 @@ async function copyOutput() {
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo copiar el texto.";
     setNotice("error", message);
+  }
+}
+
+async function copyTranslationOutput() {
+  const text = elements.translationOutput.value.trim();
+  if (!text) {
+    setNotice("error", "No hay traducción para copiar.");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    setNotice("success", "Traducción copiada al clipboard.");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "No se pudo copiar la traducción.";
+    setNotice("error", message);
+  }
+}
+
+function handleOcrOutputInput() {
+  clearTranslationOutput({ keepNotice: true });
+  updateControlState();
+}
+
+function clearTranslationOutput({ keepNotice } = {}) {
+  elements.translationOutput.value = "";
+  elements.translationMeta.textContent = DEFAULT_TRANSLATION_META;
+  if (!keepNotice) {
+    setNotice("neutral", DEFAULT_NOTICE);
   }
 }
 

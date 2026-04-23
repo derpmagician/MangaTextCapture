@@ -4,3 +4,6 @@ jinja2>=3.1.0
 python-multipart>=0.0.12
 manga-ocr>=0.1.14
 Pillow>=10.0.0
+transformers>=4.25.0
+sentencepiece>=0.1.91
+sacremoses>=0.1.1

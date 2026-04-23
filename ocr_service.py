@@ -8,6 +8,8 @@ from time import perf_counter
 from PIL import Image, UnidentifiedImageError
 from manga_ocr import MangaOcr
 
+from hf_env import configure_hf_environment
+
 
 @dataclass(slots=True)
 class OcrResult:
@@ -34,6 +36,7 @@ class OcrService:
 
     def _load_model(self) -> None:
         try:
+            configure_hf_environment()
             self._model = MangaOcr()
             self._load_error = None
         except Exception as exc:  # pragma: no cover - surfaced via status route
