@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
+from hf_env import configure_runtime_model_access
 from ocr_service import ocr_service
 from translation_service import translation_service
 
@@ -25,6 +26,7 @@ class TranslateRequest(BaseModel):
 
 @app.on_event("startup")
 async def startup_event() -> None:
+    configure_runtime_model_access()
     ocr_service.start_loading()
     translation_service.start_loading()
     print("Go to http://127.0.0.1:8000/")

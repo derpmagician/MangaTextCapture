@@ -43,8 +43,43 @@ Luego abre `http://127.0.0.1:8000`.
 
 ## Notas
 
-- En la primera ejecución `manga-ocr` descarga y prepara el modelo. Puede tardar varios minutos.
+- En la primera ejecución la app crea una carpeta local `models/` y descarga ahí los modelos OCR y de traducción. En los siguientes reinicios reutiliza esos archivos locales aunque recargues el proceso con `--reload`.
+- Cuando ambos modelos ya están completos en `models/`, el arranque siguiente activa `HF_HUB_OFFLINE=1` automáticamente y carga solo desde disco local.
 - La traducción usa por defecto `Helsinki-NLP/opus-mt-ja-es`. Puedes cambiar el modelo con `MANGA_TRANSLATION_MODEL` y la etiqueta visible con `MANGA_TRANSLATION_TARGET_LABEL`.
+- Si quieres otra ubicación para los modelos, define `MANGA_MODELS_DIR` antes de arrancar el servidor.
+- Si necesitas volver a permitir consultas remotas aunque ya exista la carpeta local, define `MANGA_OFFLINE_AFTER_DOWNLOAD=0` antes de arrancar.
 - La app funciona mejor con texto japonés impreso. Si el recorte no contiene texto, el modelo puede devolver texto erróneo o inventado.
 - El botón de clipboard depende de que el navegador permita `navigator.clipboard.read()` en `localhost`. Si no funciona, usa `Ctrl + V` directamente sobre la página.
-- Si ves avisos de Hugging Face, define `HF_TOKEN` o usa `huggingface-cli login` para mejorar límites y velocidad de descarga. - Para usar un token automáticamente en esta app, crea un archivo `.env` con `HF_TOKEN=tu_token` y reinicia el servidor. El archivo `.env` ya está ignorado por Git.
+- Si ves avisos de Hugging Face, define `HF_TOKEN` en tu entorno o usa `huggingface-cli login` para mejorar límites y velocidad de descarga.
+
+## Carpeta local de modelos
+
+Por defecto la app usa esta estructura dentro del proyecto:
+
+```text
+models/
+	ocr/
+		kha-white/
+			manga-ocr-base/
+	translation/
+		Helsinki-NLP/
+			opus-mt-ja-es/
+```
+
+Si la carpeta del modelo ya existe y está completa, la app carga desde ahí sin volver a descargar. Si falta algún modelo, lo descarga en esa carpeta y luego lo usa localmente.
+
+Con el comportamiento por defecto, cuando los dos modelos requeridos ya existen en esa carpeta, la app entra en modo offline en el siguiente arranque y no consulta Hugging Face durante la carga.
+
+En PowerShell puedes cambiar la ruta así:
+
+```powershell
+$env:MANGA_MODELS_DIR = "C:\programing\Manga-OCR\models"
+python -m uvicorn app:app --reload
+```
+
+Si quieres desactivar ese modo offline automático:
+
+```powershell
+$env:MANGA_OFFLINE_AFTER_DOWNLOAD = "0"
+python -m uvicorn app:app --reload
+```

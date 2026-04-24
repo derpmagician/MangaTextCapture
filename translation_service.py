@@ -6,7 +6,7 @@ from threading import Lock, Thread
 from time import perf_counter
 from typing import Any
 
-from hf_env import configure_hf_environment
+from hf_env import configure_hf_environment, ensure_local_model
 
 
 DEFAULT_TRANSLATION_MODEL = "Helsinki-NLP/opus-mt-ja-es"
@@ -46,11 +46,11 @@ class TranslationService:
             from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
             configure_hf_environment()
-            hf_token = os.getenv("HF_TOKEN")
-            load_kwargs = {"token": hf_token} if hf_token else {}
+            model_path = ensure_local_model(self._model_name, "translation")
+            load_kwargs = {"local_files_only": True}
 
-            tokenizer = AutoTokenizer.from_pretrained(self._model_name, **load_kwargs)
-            model = AutoModelForSeq2SeqLM.from_pretrained(self._model_name, **load_kwargs)
+            tokenizer = AutoTokenizer.from_pretrained(str(model_path), **load_kwargs)
+            model = AutoModelForSeq2SeqLM.from_pretrained(str(model_path), **load_kwargs)
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             model.to(device)
             model.eval()

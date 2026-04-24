@@ -293,7 +293,8 @@ kbd {
   width: 100%;
   max-width: 100%;
   margin-top: 14px;
-  min-height: 560px;
+  min-height: 360px;
+  max-height: min(72vh, 760px);
   overflow: auto;
   border-radius: calc(var(--radius-lg) - 10px);
   border: 1px solid rgba(31, 26, 21, 0.08);
@@ -397,7 +398,12 @@ kbd {
 
 .button-stack {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+
+.button-stack .button {
+  min-width: 0;
 }
 
 .translation-block {

@@ -2,19 +2,48 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from io import BytesIO
+from pathlib import Path
 from threading import Lock, Thread
 from time import perf_counter
+import re
 
+import jaconv
 from PIL import Image, UnidentifiedImageError
 from manga_ocr import MangaOcr
 
-from hf_env import configure_hf_environment
+from hf_env import ensure_local_model
 
 
 @dataclass(slots=True)
 class OcrResult:
     text: str
     elapsed_ms: int
+
+
+def post_process_preserve_lines(text: str) -> str:
+    lines = text.splitlines()
+    normalized_lines = [" ".join(line.split()) for line in lines]
+    text = "\n".join(normalized_lines).strip()
+    text = text.replace("…", "...")
+    text = re.sub("[・.]{2,}", lambda match: "." * (match.end() - match.start()), text)
+    text = jaconv.h2z(text, ascii=True, digit=True)
+    return text
+
+
+class MangaOcrWithLineBreaks(MangaOcr):
+    def __call__(self, img_or_path):
+        if isinstance(img_or_path, (str, Path)):
+            img = Image.open(img_or_path)
+        elif isinstance(img_or_path, Image.Image):
+            img = img_or_path
+        else:
+            raise ValueError(f"img_or_path must be a path or PIL.Image, instead got: {img_or_path}")
+
+        img = img.convert("L").convert("RGB")
+        x = self._preprocess(img)
+        x = self.model.generate(x[None].to(self.model.device), max_length=300)[0].cpu()
+        x = self.tokenizer.decode(x, skip_special_tokens=True)
+        return post_process_preserve_lines(x)
 
 
 class OcrService:
@@ -36,8 +65,8 @@ class OcrService:
 
     def _load_model(self) -> None:
         try:
-            configure_hf_environment()
-            self._model = MangaOcr()
+            model_path = ensure_local_model("kha-white/manga-ocr-base", "ocr")
+            self._model = MangaOcrWithLineBreaks(pretrained_model_name_or_path=str(model_path))
             self._load_error = None
         except Exception as exc:  # pragma: no cover - surfaced via status route
             self._load_error = str(exc)

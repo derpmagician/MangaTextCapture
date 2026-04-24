@@ -392,7 +392,6 @@ function drawCanvas() {
   const drawY = canvasHeight === height ? Math.floor((canvasHeight - drawHeight) / 2) : BASE_PADDING;
 
   resizeCanvas(canvasWidth, canvasHeight, devicePixelRatio);
-
   state.displayBounds = { x: drawX, y: drawY, width: drawWidth, height: drawHeight };
 
   canvasContext.save();

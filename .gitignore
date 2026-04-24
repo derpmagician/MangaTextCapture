@@ -39,6 +39,9 @@ coverage.xml
 .env
 .env.*
 
+# Local model cache
+models/
+
 # macOS
 .DS_Store
 
