@@ -16,7 +16,7 @@
           <span id="modelStatusBadge" class="status-badge status-loading">Preparando modelo</span>
         </div>
         <p class="subtitle">
-          Carga una imagen y selecciona el área que quieres capturar.
+          Carga una imagen o una carpeta y selecciona el área que quieres capturar.
         </p>
       </div>
       <div class="status-card" aria-live="polite">
@@ -35,16 +35,32 @@
           </div>
           <div class="button-row">
             <button id="chooseFileButton" type="button" class="button button-primary">Cargar imagen</button>
+            <button id="chooseFolderButton" type="button" class="button button-secondary">Cargar carpeta</button>
             <button id="clearImageButton" type="button" class="button button-ghost" disabled>Quitar imagen</button>
             <button id="clipboardButton" type="button" class="button button-secondary">Pegar del clipboard</button>
             <input id="fileInput" type="file" accept="image/*" hidden>
+            <input id="folderInput" type="file" accept="image/*" webkitdirectory multiple hidden>
           </div>
         </div>
 
         <div id="dropZone" class="drop-zone" tabindex="0" aria-label="Zona para arrastrar una imagen">
           <p class="drop-title">Suelta una imagen aquí</p>
-          <p class="drop-copy">También puedes pegar una captura con <kbd>Ctrl</kbd> + <kbd>V</kbd>.</p>
+          <p class="drop-copy">También puedes cargar una carpeta o pegar una captura con <kbd>Ctrl</kbd> + <kbd>V</kbd>.</p>
         </div>
+
+        <section class="image-collection" aria-labelledby="imageCollectionTitle">
+          <div class="panel-heading panel-heading-compact">
+            <div>
+              <p class="eyebrow">Lote</p>
+              <h2 id="imageCollectionTitle">Imágenes cargadas</h2>
+            </div>
+            <span id="imageCollectionMeta" class="request-meta">Sin lote activo</span>
+          </div>
+          <label class="sr-only" for="imagePicker">Seleccionar imagen activa</label>
+          <select id="imagePicker" class="image-picker" disabled>
+            <option value="">Carga una carpeta para navegar entre imágenes.</option>
+          </select>
+        </section>
 
         <div id="canvasFrame" class="canvas-frame">
           <div class="canvas-controls" aria-label="Controles de zoom">

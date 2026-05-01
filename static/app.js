@@ -1,8 +1,12 @@
 const elements = {
   chooseFileButton: document.querySelector("#chooseFileButton"),
+  chooseFolderButton: document.querySelector("#chooseFolderButton"),
   clipboardButton: document.querySelector("#clipboardButton"),
   fileInput: document.querySelector("#fileInput"),
+  folderInput: document.querySelector("#folderInput"),
   dropZone: document.querySelector("#dropZone"),
+  imageCollectionMeta: document.querySelector("#imageCollectionMeta"),
+  imagePicker: document.querySelector("#imagePicker"),
   canvasFrame: document.querySelector("#canvasFrame"),
   canvasViewport: document.querySelector("#canvasViewport"),
   previewCanvas: document.querySelector("#previewCanvas"),
@@ -39,6 +43,8 @@ const state = {
   imageBlob: null,
   imageName: "",
   objectUrl: "",
+  imageEntries: [],
+  activeImageIndex: -1,
   selection: null,
   draftSelection: null,
   dragStart: null,
@@ -55,9 +61,10 @@ const state = {
 };
 
 const DEFAULT_IMAGE_META = "Sin imagen cargada.";
+const DEFAULT_COLLECTION_META = "Sin lote activo";
 const DEFAULT_REQUEST_META = "Sin peticiones";
 const DEFAULT_TRANSLATION_META = "Sin traducciones";
-const DEFAULT_NOTICE = "Carga una imagen para empezar.";
+const DEFAULT_NOTICE = "Carga una imagen o carpeta para empezar.";
 const STATUS_POLL_INTERVAL_MS = 4000;
 const BASE_PADDING = 28;
 const MIN_ZOOM = 0.5;
@@ -90,8 +97,11 @@ function bootstrap() {
 
 function bindEvents() {
   elements.chooseFileButton.addEventListener("click", () => elements.fileInput.click());
+  elements.chooseFolderButton.addEventListener("click", () => elements.folderInput.click());
   elements.clipboardButton.addEventListener("click", handleClipboardButton);
   elements.fileInput.addEventListener("change", handleFileInputChange);
+  elements.folderInput.addEventListener("change", handleFolderInputChange);
+  elements.imagePicker.addEventListener("change", handleImagePickerChange);
   elements.clearImageButton.addEventListener("click", clearLoadedImage);
   elements.zoomOutButton.addEventListener("click", () => changeZoom(-ZOOM_STEP));
   elements.zoomResetButton.addEventListener("click", () => setZoom(1));
@@ -243,7 +253,9 @@ async function handleDrop(event) {
     return;
   }
 
-  await loadImageBlob(file, file.name || "imagen-arrastrada");
+  await loadImageEntries([
+    createImageEntry(file, file.name || "imagen-arrastrada"),
+  ]);
 }
 
 async function handleFileInputChange(event) {
@@ -262,8 +274,70 @@ async function handleFileInputChange(event) {
     return;
   }
 
-  await loadImageBlob(file, file.name || "imagen-local");
+  await loadImageEntries([
+    createImageEntry(file, file.name || "imagen-local"),
+  ]);
   target.value = "";
+}
+
+async function handleFolderInputChange(event) {
+  if (state.busy) {
+    setNotice("neutral", "Espera a que termine la petición actual.");
+    return;
+  }
+
+  const target = event.currentTarget;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const files = Array.from(target.files ?? []);
+  if (!files.length) {
+    return;
+  }
+
+  const entries = files
+    .filter((file) => file.type.startsWith("image/"))
+    .map((file, index) => createImageEntry(
+      file,
+      file.webkitRelativePath || file.name || `imagen-${index + 1}`,
+    ))
+    .sort((left, right) => left.label.localeCompare(right.label, undefined, {
+      numeric: true,
+      sensitivity: "base",
+    }));
+
+  if (!entries.length) {
+    setNotice("error", "La carpeta seleccionada no contiene imágenes compatibles.");
+    target.value = "";
+    return;
+  }
+
+  await loadImageEntries(entries, {
+    noticeMessage: `Se cargaron ${entries.length} imágenes. Ya puedes cambiar entre ellas cuando quieras.`,
+  });
+  target.value = "";
+}
+
+async function handleImagePickerChange(event) {
+  if (state.busy) {
+    setNotice("neutral", "Espera a que termine la petición actual.");
+    return;
+  }
+
+  const target = event.currentTarget;
+  if (!(target instanceof HTMLSelectElement)) {
+    return;
+  }
+
+  const nextIndex = Number.parseInt(target.value, 10);
+  if (!Number.isInteger(nextIndex) || nextIndex === state.activeImageIndex) {
+    return;
+  }
+
+  await activateImageIndex(nextIndex, {
+    noticeMessage: `Imagen ${nextIndex + 1} de ${state.imageEntries.length} lista para trabajar.`,
+  });
 }
 
 async function handleClipboardButton() {
@@ -286,7 +360,9 @@ async function handleClipboardButton() {
       }
 
       const blob = await item.getType(imageType);
-      await loadImageBlob(blob, "clipboard");
+      await loadImageEntries([
+        createImageEntry(blob, "clipboard.png"),
+      ]);
       return;
     }
 
@@ -316,43 +392,77 @@ async function handlePasteEvent(event) {
     return;
   }
 
-  await loadImageBlob(blob, "clipboard");
+  await loadImageEntries([
+    createImageEntry(blob, "clipboard.png"),
+  ]);
 }
 
-async function loadImageBlob(blob, sourceName) {
-  if (!blob.type.startsWith("image/")) {
-    setNotice("error", "El archivo recibido no es una imagen compatible.");
+function createImageEntry(blob, label) {
+  return { blob, label };
+}
+
+async function loadImageEntries(entries, { initialIndex = 0, noticeMessage = null } = {}) {
+  const validEntries = entries.filter((entry) => entry.blob?.type?.startsWith("image/"));
+  if (!validEntries.length) {
+    setNotice("error", "No se encontraron imágenes compatibles para cargar.");
+    return;
+  }
+
+  state.imageEntries = validEntries;
+  state.activeImageIndex = -1;
+  updateImageCollectionControls();
+
+  await activateImageIndex(clamp(initialIndex, 0, validEntries.length - 1), { noticeMessage });
+}
+
+async function activateImageIndex(index, { noticeMessage = null } = {}) {
+  const entry = state.imageEntries[index];
+  if (!entry) {
+    setNotice("error", "La imagen seleccionada ya no está disponible.");
     return;
   }
 
   revokeObjectUrl();
+  const objectUrl = URL.createObjectURL(entry.blob);
 
   try {
-    const objectUrl = URL.createObjectURL(blob);
     const image = await loadHtmlImage(objectUrl);
 
     state.objectUrl = objectUrl;
     state.image = image;
-    state.imageBlob = blob;
-    state.imageName = sourceName;
+    state.imageBlob = entry.blob;
+    state.imageName = entry.label;
+    state.activeImageIndex = index;
     state.selection = null;
     state.draftSelection = null;
     state.dragStart = null;
     state.zoomLevel = 1;
 
-    elements.imageMeta.textContent = `${sourceName} · ${image.naturalWidth} × ${image.naturalHeight}px`;
+    elements.imageMeta.textContent = `${entry.label} · ${image.naturalWidth} × ${image.naturalHeight}px`;
     elements.imageMeta.title = elements.imageMeta.textContent;
     elements.requestMeta.textContent = DEFAULT_REQUEST_META;
     elements.ocrOutput.value = "";
     clearTranslationOutput({ keepNotice: true });
-    setNotice("success", "Imagen cargada. Arrastra sobre la preview para seleccionar el área a reconocer.");
+    updateImageCollectionControls();
+    setNotice(
+      "success",
+      noticeMessage ?? "Imagen cargada. Arrastra sobre la preview para seleccionar el área a reconocer.",
+    );
     updateSelectionReadout(null);
     updateZoomReadout();
     updateControlState();
     drawCanvas();
     centerViewport();
   } catch (error) {
-    resetLoadedImage({ clearOutput: true, noticeTone: "error", noticeMessage: null });
+    URL.revokeObjectURL(objectUrl);
+    state.activeImageIndex = -1;
+    resetLoadedImage({
+      clearOutput: true,
+      noticeTone: "error",
+      noticeMessage: null,
+      preserveCollection: true,
+    });
+    updateImageCollectionControls();
     const message = error instanceof Error ? error.message : "No se pudo abrir la imagen.";
     setNotice("error", message);
   }
@@ -439,7 +549,7 @@ function drawPlaceholder(width, height) {
   canvasContext.font = '700 24px "Palatino Linotype", serif';
   canvasContext.fillText("Tu preview aparecerá aquí", width / 2, height / 2 - 8);
   canvasContext.font = '16px "Yu Gothic UI", sans-serif';
-  canvasContext.fillText("Carga una imagen, arrástrala o pégala desde el clipboard.", width / 2, height / 2 + 22);
+  canvasContext.fillText("Carga una imagen, una carpeta o pega una captura desde el clipboard.", width / 2, height / 2 + 22);
   canvasContext.restore();
 }
 
@@ -510,16 +620,20 @@ function clearLoadedImage() {
   resetLoadedImage({
     clearOutput: true,
     noticeTone: "neutral",
-    noticeMessage: "La imagen cargada se quitó.",
+    noticeMessage: "La imagen o lote cargado se quitó.",
   });
 }
 
-function resetLoadedImage({ clearOutput, noticeTone, noticeMessage } = {}) {
+function resetLoadedImage({ clearOutput, noticeTone, noticeMessage, preserveCollection = false } = {}) {
   revokeObjectUrl();
 
   state.image = null;
   state.imageBlob = null;
   state.imageName = "";
+  if (!preserveCollection) {
+    state.imageEntries = [];
+    state.activeImageIndex = -1;
+  }
   state.selection = null;
   state.draftSelection = null;
   state.dragStart = null;
@@ -528,9 +642,11 @@ function resetLoadedImage({ clearOutput, noticeTone, noticeMessage } = {}) {
 
   elements.imageMeta.textContent = DEFAULT_IMAGE_META;
   elements.imageMeta.title = DEFAULT_IMAGE_META;
+  elements.imageCollectionMeta.textContent = DEFAULT_COLLECTION_META;
   elements.requestMeta.textContent = DEFAULT_REQUEST_META;
   updateSelectionReadout(null);
   updateZoomReadout();
+  updateImageCollectionControls();
 
   if (clearOutput) {
     elements.ocrOutput.value = "";
@@ -558,6 +674,37 @@ function updateZoomReadout() {
   elements.zoomValue.textContent = `${Math.round(state.zoomLevel * 100)}%`;
 }
 
+function updateImageCollectionControls() {
+  elements.imagePicker.replaceChildren();
+
+  if (!state.imageEntries.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Carga una carpeta para navegar entre imágenes.";
+    elements.imagePicker.append(option);
+    elements.imagePicker.value = "";
+    elements.imageCollectionMeta.textContent = DEFAULT_COLLECTION_META;
+    elements.imagePicker.title = DEFAULT_COLLECTION_META;
+    return;
+  }
+
+  state.imageEntries.forEach((entry, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${index + 1}. ${entry.label}`;
+    elements.imagePicker.append(option);
+  });
+
+  const hasActiveImage = state.activeImageIndex >= 0 && state.activeImageIndex < state.imageEntries.length;
+  elements.imagePicker.value = String(hasActiveImage ? state.activeImageIndex : 0);
+  elements.imageCollectionMeta.textContent = hasActiveImage
+    ? `Imagen ${state.activeImageIndex + 1} de ${state.imageEntries.length}`
+    : `${state.imageEntries.length} imágenes cargadas`;
+  elements.imagePicker.title = hasActiveImage
+    ? state.imageEntries[state.activeImageIndex].label
+    : `${state.imageEntries.length} imágenes cargadas`;
+}
+
 function updateControlState() {
   const hasImage = Boolean(state.image && state.imageBlob);
   const hasSelection = Boolean(state.selection);
@@ -568,7 +715,9 @@ function updateControlState() {
   const canTranslate = hasOcrText && state.translationReady && !state.busy;
 
   elements.chooseFileButton.disabled = state.busy;
+  elements.chooseFolderButton.disabled = state.busy;
   elements.clipboardButton.disabled = state.busy;
+  elements.imagePicker.disabled = !(state.imageEntries.length && !state.busy);
   elements.ocrFullButton.disabled = !canRequest;
   elements.ocrSelectionButton.disabled = !(canRequest && hasSelection);
   elements.clearSelectionButton.disabled = !(hasSelection && !state.busy);

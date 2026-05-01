@@ -32,20 +32,22 @@ Luego abre `http://127.0.0.1:8000`.
 
 ## Flujo de uso
 
-1. Carga una imagen con el botón, arrástrala al área o pégala con `Ctrl + V`.
-2. Si necesitas inspeccionar mejor el panel, usa `+`, `−` o `Ajustar` para controlar el zoom de la preview.
-3. Espera a que el estado del modelo pase a `Modelo listo`.
-4. Arrastra dentro de la preview para definir el área que quieres reconocer.
-5. Pulsa `OCR selección` para enviar solo el recorte o `OCR imagen completa` para procesar toda la imagen.
-6. Revisa o edita el texto OCR en la caja de salida y pulsa `Traducir` para generar la versión traducida.
-7. Usa `Quitar imagen` para limpiar la captura actual cuando quieras empezar de nuevo.
-8. Copia tanto el texto OCR como la traducción desde sus cajas respectivas.
+1. Carga una imagen con el botón, carga una carpeta completa, arrastra una imagen al área o pégala con `Ctrl + V`.
+2. Si cargaste una carpeta, usa el selector `Imágenes cargadas` para elegir cuál quieres trabajar y cambiarla en cualquier momento.
+3. Si necesitas inspeccionar mejor el panel, usa `+`, `−` o `Ajustar` para controlar el zoom de la preview.
+4. Espera a que el estado del modelo pase a `Modelo listo`.
+5. Arrastra dentro de la preview para definir el área que quieres reconocer.
+6. Pulsa `OCR selección` para enviar solo el recorte o `OCR imagen completa` para procesar toda la imagen.
+7. Revisa o edita el texto OCR en la caja de salida y pulsa `Traducir` para generar la versión traducida.
+8. Usa `Quitar imagen` para limpiar la captura actual o el lote cargado cuando quieras empezar de nuevo.
+9. Copia tanto el texto OCR como la traducción desde sus cajas respectivas.
 
 ## Notas
 
 - En la primera ejecución la app crea una carpeta local `models/` y descarga ahí los modelos OCR y de traducción. En los siguientes reinicios reutiliza esos archivos locales aunque recargues el proceso con `--reload`.
 - Cuando ambos modelos ya están completos en `models/`, el arranque siguiente activa `HF_HUB_OFFLINE=1` automáticamente y carga solo desde disco local.
 - La traducción usa por defecto `Helsinki-NLP/opus-mt-ja-es`. Puedes cambiar el modelo con `MANGA_TRANSLATION_MODEL` y la etiqueta visible con `MANGA_TRANSLATION_TARGET_LABEL`.
+- La carga de carpeta usa el selector del navegador y mantiene las imágenes solo en memoria del navegador mientras la página esté abierta.
 - Si quieres otra ubicación para los modelos, define `MANGA_MODELS_DIR` antes de arrancar el servidor.
 - Si necesitas volver a permitir consultas remotas aunque ya exista la carpeta local, define `MANGA_OFFLINE_AFTER_DOWNLOAD=0` antes de arrancar.
 - La app funciona mejor con texto japonés impreso. Si el recorte no contiene texto, el modelo puede devolver texto erróneo o inventado.

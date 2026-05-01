@@ -211,6 +211,28 @@ h2 {
   margin: 8px 0 0;
 }
 
+.image-collection {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(31, 26, 21, 0.08);
+  background: rgba(255, 250, 241, 0.72);
+}
+
+.image-picker {
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(31, 26, 21, 0.12);
+  background: rgba(255, 250, 241, 0.92);
+  color: var(--ink);
+}
+
+.image-picker:disabled {
+  opacity: 0.62;
+}
+
 kbd {
   border: 1px solid var(--line-strong);
   border-radius: 8px;
@@ -451,6 +473,7 @@ kbd {
 
 #ocrOutput:focus-visible,
 #translationOutput:focus-visible,
+.image-picker:focus-visible,
 .button:focus-visible {
   outline: 3px solid rgba(20, 99, 86, 0.28);
   outline-offset: 3px;
