@@ -1,6 +1,6 @@
 # Manga OCR Reader
 
-Aplicación web local para usar `manga-ocr` con una interfaz simple: cargar imagen, arrastrarla, pegarla desde el portapapeles, ver preview, seleccionar un recorte, extraer texto y traducirlo con Marian NMT.
+Aplicación web local para usar `manga-ocr` con una interfaz simple: cargar una imagen o una carpeta completa, arrastrar imágenes, pegarlas desde el portapapeles, ver la preview, seleccionar un recorte, extraer texto y traducirlo con Marian NMT.
 
 ## Requisitos
 
@@ -48,6 +48,7 @@ Luego abre `http://127.0.0.1:8000`.
 - Cuando ambos modelos ya están completos en `models/`, el arranque siguiente activa `HF_HUB_OFFLINE=1` automáticamente y carga solo desde disco local.
 - La traducción usa por defecto `Helsinki-NLP/opus-mt-ja-es`. Puedes cambiar el modelo con `MANGA_TRANSLATION_MODEL` y la etiqueta visible con `MANGA_TRANSLATION_TARGET_LABEL`.
 - La carga de carpeta usa el selector del navegador y mantiene las imágenes solo en memoria del navegador mientras la página esté abierta.
+- El selector de carpetas depende de `webkitdirectory`, así que conviene probarlo en navegadores Chromium actuales.
 - Si quieres otra ubicación para los modelos, define `MANGA_MODELS_DIR` antes de arrancar el servidor.
 - Si necesitas volver a permitir consultas remotas aunque ya exista la carpeta local, define `MANGA_OFFLINE_AFTER_DOWNLOAD=0` antes de arrancar.
 - La app funciona mejor con texto japonés impreso. Si el recorte no contiene texto, el modelo puede devolver texto erróneo o inventado.
@@ -76,12 +77,12 @@ En PowerShell puedes cambiar la ruta así:
 
 ```powershell
 $env:MANGA_MODELS_DIR = "C:\programing\Manga-OCR\models"
-python -m uvicorn app:app --reload
+.\.venv\Scripts\python.exe -m uvicorn app:app --reload
 ```
 
 Si quieres desactivar ese modo offline automático:
 
 ```powershell
 $env:MANGA_OFFLINE_AFTER_DOWNLOAD = "0"
-python -m uvicorn app:app --reload
+.\.venv\Scripts\python.exe -m uvicorn app:app --reload
 ```

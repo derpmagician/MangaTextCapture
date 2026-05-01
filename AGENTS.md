@@ -14,7 +14,7 @@ Use this file for repo-specific guidance. For setup, usage, model layout, and en
 - `ocr_service.py` owns OCR model lifecycle and inference. It loads `kha-white/manga-ocr-base` in a background thread, serializes inference with a lock, and normalizes OCR output while preserving line breaks.
 - `translation_service.py` owns translation model lifecycle and inference. It loads the Marian model in a background thread, batch-translates only non-empty lines, and preserves blank lines in the returned text.
 - `hf_env.py` centralizes Hugging Face cache/model directory setup, local model checks, and the offline-after-download behavior.
-- `templates/index.html`, `static/app.js`, and `static/app.css` form a vanilla JS single-page UI. `static/app.js` keeps most client state in a single `state` object and polls `/api/status` while models are loading.
+- `templates/index.html`, `static/app.js`, and `static/app.css` form a vanilla JS single-page UI. `static/app.js` keeps most client state in a single `state` object, manages the active image plus folder-loaded image collections in memory, and polls `/api/status` while models are loading.
 
 ## Project Conventions
 
@@ -22,6 +22,7 @@ Use this file for repo-specific guidance. For setup, usage, model layout, and en
 - Prefer small changes in the owning layer: API work in `app.py`, model/runtime work in `ocr_service.py` or `translation_service.py`, Hugging Face/model path work in `hf_env.py`, and UI behavior in `static/app.js` plus `templates/index.html` and `static/app.css`.
 - Preserve the Spanish UI copy unless the task explicitly asks to change language.
 - Avoid editing or deleting files under `models/` unless the task is specifically about local model assets.
+- Preserve the folder workflow in the frontend: switching the active image should reset selection and text outputs, and folder-loaded images are intentionally stored only in browser memory.
 - When touching layout around the reader grid or canvas viewport, preserve the `min-width: 0` behavior on grid children. Removing it can reintroduce recursive canvas growth during zoom.
 
 ## Runtime Notes
@@ -35,4 +36,5 @@ Use this file for repo-specific guidance. For setup, usage, model layout, and en
 - There is no automated test suite in this repo today.
 - After backend changes, run the dev server and verify `/api/status` first.
 - After OCR or translation changes, manually verify the upload or paste flow, selection, OCR request, and translation request in the browser.
+- After frontend changes, manually verify single-image loading, folder loading, switching the active image from the picker, and that the preview/selection state updates correctly.
 - After layout changes, manually verify zoom controls and canvas sizing on the main page.
