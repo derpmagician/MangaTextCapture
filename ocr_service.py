@@ -22,7 +22,12 @@ class OcrResult:
 
 def post_process_preserve_lines(text: str) -> str:
     lines = text.splitlines()
-    normalized_lines = [" ".join(line.split()) for line in lines]
+    normalized_lines = []
+    for line in lines:
+        # Remove spaces between Japanese/CJK characters (tokenizer artifact)
+        line = re.sub(r'(?<=[^\x00-\x7F])\s+(?=[^\x00-\x7F])', '', line)
+        line = " ".join(line.split())
+        normalized_lines.append(line)
     text = "\n".join(normalized_lines).strip()
     text = text.replace("…", "...")
     text = re.sub("[・.]{2,}", lambda match: "." * (match.end() - match.start()), text)
@@ -41,7 +46,7 @@ class MangaOcrWithLineBreaks(MangaOcr):
 
         img = img.convert("L").convert("RGB")
         x = self._preprocess(img)
-        x = self.model.generate(x[None].to(self.model.device), max_length=300)[0].cpu()
+        x = self.model.generate(x[None].to(self.model.device), max_length=300)[0].cpu()  # type: ignore[operator]
         x = self.tokenizer.decode(x, skip_special_tokens=True)
         return post_process_preserve_lines(x)
 

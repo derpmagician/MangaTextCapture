@@ -1,12 +1,14 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" style="color-scheme: dark;">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#1a1820">
     <title>{{ title }}</title>
     <link rel="stylesheet" href="/static/app.css">
   </head>
   <body>
+    <a href="#main" class="skip-link">Saltar al contenido</a>
     <div class="page-glow" aria-hidden="true"></div>
     <header class="masthead">
       <div>
@@ -26,7 +28,7 @@
       </div>
     </header>
 
-    <main class="workspace">
+    <main id="main" class="workspace">
       <section class="reader-stage" aria-labelledby="stageTitle">
         <div class="stage-toolbar">
           <div>
@@ -102,7 +104,7 @@
             </div>
           </div>
           <div id="canvasViewport" class="canvas-viewport">
-            <canvas id="previewCanvas"></canvas>
+            <canvas id="previewCanvas" aria-label="Vista previa de imagen. Arrastra para seleccionar un área de texto."></canvas>
           </div>
         </div>
       </section>
@@ -117,7 +119,7 @@
             <span id="requestMeta" class="request-meta">Sin peticiones</span>
           </div>
           <label class="sr-only" for="ocrOutput">Texto OCR</label>
-          <textarea id="ocrOutput" rows="6" spellcheck="false" placeholder="El texto reconocido aparecerá aquí."></textarea>
+          <textarea id="ocrOutput" rows="6" spellcheck="false" placeholder="El texto reconocido aparecerá aquí…"></textarea>
           <div class="button-row">
             <button id="translateOutputButton" type="button" class="button button-primary" disabled>Traducir al español</button>
             <button id="copyOutputButton" type="button" class="button button-secondary">Copiar OCR</button>
@@ -133,7 +135,7 @@
               <span id="translationMeta" class="request-meta">Sin traducciones</span>
             </div>
             <label class="sr-only" for="translationOutput">Texto traducido</label>
-            <textarea id="translationOutput" rows="6" spellcheck="false" placeholder="La traducción aparecerá aquí."></textarea>
+            <textarea id="translationOutput" rows="6" spellcheck="false" placeholder="La traducción aparecerá aquí…"></textarea>
             <div class="button-row">
               <button id="copyTranslationButton" type="button" class="button button-secondary" disabled>Copiar traducción</button>
               <button id="clearTranslationButton" type="button" class="button button-ghost" disabled>Limpiar traducción</button>

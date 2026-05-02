@@ -743,6 +743,7 @@ function updateSelectionReadout(rect) {
   elements.selectionY.textContent = String(Math.round(safeRect.y));
   elements.selectionWidth.textContent = String(Math.round(safeRect.width));
   elements.selectionHeight.textContent = String(Math.round(safeRect.height));
+  elements.selectionX.closest('dl').classList.toggle('is-active', rect != null && safeRect.width > 0);
 }
 
 function updateZoomReadout() {

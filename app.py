@@ -15,6 +15,17 @@ from translation_service import translation_service
 
 BASE_DIR = Path(__file__).resolve().parent
 
+ALLOWED_IMAGE_MEDIA_TYPES = {
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/webp",
+    "image/bmp",
+    "image/gif",
+    "image/tiff",
+}
+MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+
 app = FastAPI(title="Manga OCR Reader")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -50,11 +61,33 @@ async def get_status() -> JSONResponse:
     })
 
 
-@app.post("/api/ocr")
-async def post_ocr(image: UploadFile = File(...)) -> JSONResponse:
+async def read_and_validate_image_upload(image: UploadFile) -> bytes:
+    if image.content_type not in ALLOWED_IMAGE_MEDIA_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Formato no soportado. Carga un PNG, JPEG, BMP, GIF, TIFF o WEBP."
+            ),
+        )
+
     image_bytes = await image.read()
     if not image_bytes:
-        raise HTTPException(status_code=400, detail="No image was provided.")
+        raise HTTPException(status_code=400, detail="No se envió ninguna imagen.")
+
+    if len(image_bytes) > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                "El archivo excede el tamaño máximo permitido de 10 MB."
+            ),
+        )
+
+    return image_bytes
+
+
+@app.post("/api/ocr")
+async def post_ocr(image: UploadFile = File(...)) -> JSONResponse:
+    image_bytes = await read_and_validate_image_upload(image)
 
     status = ocr_service.status()
     if not status["ready"]:
