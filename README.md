@@ -33,7 +33,7 @@ Luego abre `http://127.0.0.1:8000`.
 ## Flujo de uso
 
 1. Carga una imagen con el botón, carga una carpeta completa, arrastra una imagen al área o pégala con `Ctrl + V`.
-2. Si cargaste una carpeta, usa el selector `Imágenes cargadas` para elegir cuál quieres trabajar y cambiarla en cualquier momento.
+2. Si cargaste una carpeta, usa el selector `Cargar` para elegir cuál quieres trabajar y cambiarla en cualquier momento.
 3. Si necesitas inspeccionar mejor el panel, usa `+`, `−` o `Ajustar` para controlar el zoom de la preview.
 4. Espera a que el estado del modelo pase a `Modelo listo`.
 5. Arrastra dentro de la preview para definir el área que quieres reconocer.

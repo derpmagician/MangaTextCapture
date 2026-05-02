@@ -10,7 +10,6 @@ const elements = {
   canvasFrame: document.querySelector("#canvasFrame"),
   canvasViewport: document.querySelector("#canvasViewport"),
   previewCanvas: document.querySelector("#previewCanvas"),
-  imageMeta: document.querySelector("#imageMeta"),
   clearImageButton: document.querySelector("#clearImageButton"),
   selectionX: document.querySelector("#selectionX"),
   selectionY: document.querySelector("#selectionY"),
@@ -60,7 +59,6 @@ const state = {
   translationTargetLabel: "Español",
 };
 
-const DEFAULT_IMAGE_META = "Sin imagen cargada.";
 const DEFAULT_COLLECTION_META = "Sin lote activo";
 const DEFAULT_REQUEST_META = "Sin peticiones";
 const DEFAULT_TRANSLATION_META = "Sin traducciones";
@@ -247,15 +245,92 @@ async function handleDrop(event) {
     return;
   }
 
-  const [file] = Array.from(event.dataTransfer?.files ?? []);
-  if (!file) {
-    setNotice("error", "No se detectó una imagen en el arrastre.");
+  const entries = await extractDroppedImageEntries(event.dataTransfer);
+  if (!entries.length) {
+    setNotice("error", "No se detectaron imágenes compatibles en el arrastre.");
     return;
   }
 
-  await loadImageEntries([
-    createImageEntry(file, file.name || "imagen-arrastrada"),
-  ]);
+  await loadImageEntries(entries, {
+    noticeMessage: entries.length > 1
+      ? `Se cargaron ${entries.length} imágenes desde el arrastre. Ya puedes cambiar entre ellas cuando quieras.`
+      : null,
+  });
+}
+
+async function extractDroppedImageEntries(dataTransfer) {
+  const entriesFromItems = await extractDroppedImageEntriesFromItems(dataTransfer?.items);
+  if (entriesFromItems.length) {
+    return sortImageEntries(entriesFromItems);
+  }
+
+  const files = Array.from(dataTransfer?.files ?? [])
+    .filter((file) => file.type.startsWith("image/"))
+    .map((file, index) => createImageEntry(
+      file,
+      file.name || `imagen-arrastrada-${index + 1}`,
+    ));
+
+  return sortImageEntries(files);
+}
+
+async function extractDroppedImageEntriesFromItems(items) {
+  const droppedItems = Array.from(items ?? []);
+  const droppedEntries = droppedItems
+    .map((item) => typeof item.webkitGetAsEntry === "function" ? item.webkitGetAsEntry() : null)
+    .filter(Boolean);
+
+  if (!droppedEntries.length) {
+    return [];
+  }
+
+  const nestedEntries = await Promise.all(droppedEntries.map((entry) => readDroppedEntry(entry)));
+  return nestedEntries.flat();
+}
+
+async function readDroppedEntry(entry, parentPath = "") {
+  const entryPath = parentPath ? `${parentPath}/${entry.name}` : entry.name;
+
+  if (entry.isFile) {
+    return new Promise((resolve) => {
+      entry.file(
+        (file) => {
+          if (!file.type.startsWith("image/")) {
+            resolve([]);
+            return;
+          }
+
+          resolve([createImageEntry(file, entryPath)]);
+        },
+        () => resolve([]),
+      );
+    });
+  }
+
+  if (entry.isDirectory) {
+    const childEntries = await readAllDirectoryEntries(entry);
+    const nestedEntries = await Promise.all(childEntries.map((childEntry) => readDroppedEntry(childEntry, entryPath)));
+    return nestedEntries.flat();
+  }
+
+  return [];
+}
+
+async function readAllDirectoryEntries(directoryEntry) {
+  const reader = directoryEntry.createReader();
+  const entries = [];
+
+  while (true) {
+    const batch = await new Promise((resolve, reject) => {
+      reader.readEntries(resolve, reject);
+    });
+
+    if (!batch.length) {
+      return entries;
+    }
+
+    entries.push(...batch);
+  }
 }
 
 async function handleFileInputChange(event) {
@@ -302,10 +377,7 @@ async function handleFolderInputChange(event) {
       file,
       file.webkitRelativePath || file.name || `imagen-${index + 1}`,
     ))
-    .sort((left, right) => left.label.localeCompare(right.label, undefined, {
-      numeric: true,
-      sensitivity: "base",
-    }));
+    ;
 
   if (!entries.length) {
     setNotice("error", "La carpeta seleccionada no contiene imágenes compatibles.");
@@ -401,6 +473,13 @@ function createImageEntry(blob, label) {
   return { blob, label };
 }
 
+function sortImageEntries(entries) {
+  return [...entries].sort((left, right) => left.label.localeCompare(right.label, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  }));
+}
+
 async function loadImageEntries(entries, { initialIndex = 0, noticeMessage = null } = {}) {
   const validEntries = entries.filter((entry) => entry.blob?.type?.startsWith("image/"));
   if (!validEntries.length) {
@@ -438,8 +517,6 @@ async function activateImageIndex(index, { noticeMessage = null } = {}) {
     state.dragStart = null;
     state.zoomLevel = 1;
 
-    elements.imageMeta.textContent = `${entry.label} · ${image.naturalWidth} × ${image.naturalHeight}px`;
-    elements.imageMeta.title = elements.imageMeta.textContent;
     elements.requestMeta.textContent = DEFAULT_REQUEST_META;
     elements.ocrOutput.value = "";
     clearTranslationOutput({ keepNotice: true });
@@ -640,8 +717,6 @@ function resetLoadedImage({ clearOutput, noticeTone, noticeMessage, preserveColl
   state.displayBounds = null;
   state.zoomLevel = 1;
 
-  elements.imageMeta.textContent = DEFAULT_IMAGE_META;
-  elements.imageMeta.title = DEFAULT_IMAGE_META;
   elements.imageCollectionMeta.textContent = DEFAULT_COLLECTION_META;
   elements.requestMeta.textContent = DEFAULT_REQUEST_META;
   updateSelectionReadout(null);
@@ -699,10 +774,10 @@ function updateImageCollectionControls() {
   elements.imagePicker.value = String(hasActiveImage ? state.activeImageIndex : 0);
   elements.imageCollectionMeta.textContent = hasActiveImage
     ? `Imagen ${state.activeImageIndex + 1} de ${state.imageEntries.length}`
-    : `${state.imageEntries.length} imágenes cargadas`;
+    : `${state.imageEntries.length} Cargar`;
   elements.imagePicker.title = hasActiveImage
     ? state.imageEntries[state.activeImageIndex].label
-    : `${state.imageEntries.length} imágenes cargadas`;
+    : `${state.imageEntries.length} Cargar`;
 }
 
 function updateControlState() {

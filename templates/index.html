@@ -16,7 +16,7 @@
           <span id="modelStatusBadge" class="status-badge status-loading">Preparando modelo</span>
         </div>
         <p class="subtitle">
-          Carga una imagen o una carpeta y selecciona el área que quieres capturar.
+          Carga la imagen / carpeta y selecciona el área que quieres capturar.
         </p>
       </div>
       <div class="status-card" aria-live="polite">
@@ -43,24 +43,26 @@
           </div>
         </div>
 
-        <div id="dropZone" class="drop-zone" tabindex="0" aria-label="Zona para arrastrar una imagen">
-          <p class="drop-title">Suelta una imagen aquí</p>
-          <p class="drop-copy">También puedes cargar una carpeta o pegar una captura con <kbd>Ctrl</kbd> + <kbd>V</kbd>.</p>
-        </div>
-
-        <section class="image-collection" aria-labelledby="imageCollectionTitle">
-          <div class="panel-heading panel-heading-compact">
-            <div>
-              <p class="eyebrow">Lote</p>
-              <h2 id="imageCollectionTitle">Imágenes cargadas</h2>
-            </div>
-            <span id="imageCollectionMeta" class="request-meta">Sin lote activo</span>
+        <div class="input-layout">
+          <div id="dropZone" class="drop-zone" tabindex="0" aria-label="Zona para arrastrar una imagen o carpeta">
+            <p class="drop-title">Suelta una imagen o carpeta aquí</p>
+            <p class="drop-copy">O pega una captura con <kbd>Ctrl</kbd> + <kbd>V</kbd>.</p>
           </div>
-          <label class="sr-only" for="imagePicker">Seleccionar imagen activa</label>
-          <select id="imagePicker" class="image-picker" disabled>
-            <option value="">Carga una carpeta para navegar entre imágenes.</option>
-          </select>
-        </section>
+
+          <section class="image-collection" aria-labelledby="imageCollectionTitle">
+            <div class="panel-heading panel-heading-compact">
+              <div>
+                <p class="eyebrow">Lote</p>
+                <h2 id="imageCollectionTitle">Cargar</h2>
+              </div>
+              <span id="imageCollectionMeta" class="request-meta">Sin lote activo</span>
+            </div>
+            <label class="sr-only" for="imagePicker">Seleccionar imagen activa</label>
+            <select id="imagePicker" class="image-picker" disabled>
+              <option value="">Carga una carpeta para navegar entre imágenes.</option>
+            </select>
+          </section>
+        </div>
 
         <div id="canvasFrame" class="canvas-frame">
           <div class="canvas-controls" aria-label="Controles de zoom">
@@ -68,48 +70,44 @@
               <div class="zoom-group">
                 <button id="zoomOutButton" type="button" class="button button-secondary zoom-button" aria-label="Alejar imagen" disabled>−</button>
                 <button id="zoomResetButton" type="button" class="button button-ghost" disabled>Ajustar</button>
+                <output id="zoomValue" class="zoom-value" aria-live="polite">100%</output>
                 <button id="zoomInButton" type="button" class="button button-secondary zoom-button" aria-label="Acercar imagen" disabled>+</button>
               </div>
-              <p id="imageMeta" class="image-meta">Sin imagen cargada.</p>
+              <dl class="selection-grid selection-inline" aria-label="Área activa">
+                <div>
+                  <dt>X</dt>
+                  <dd id="selectionX">0</dd>
+                </div>
+                <div>
+                  <dt>Y</dt>
+                  <dd id="selectionY">0</dd>
+                </div>
+                <div>
+                  <dt>Ancho</dt>
+                  <dd id="selectionWidth">0</dd>
+                </div>
+                <div>
+                  <dt>Alto</dt>
+                  <dd id="selectionHeight">0</dd>
+                </div>
+              </dl>
             </div>
-            <output id="zoomValue" class="zoom-value" aria-live="polite">100%</output>
+            <div class="canvas-status">
+              <div class="button-stack selection-controls">
+                <button id="ocrSelectionButton" type="button" class="button button-primary" disabled>OCR selección</button>
+                <button id="ocrFullButton" type="button" class="button button-secondary" disabled>Imagen completa</button>
+                <button id="clearSelectionButton" type="button" class="button button-ghost" disabled>Limpiar</button>
+              </div>
+              <p class="canvas-tip">Define el area del texto.</p>
+            </div>
           </div>
           <div id="canvasViewport" class="canvas-viewport">
             <canvas id="previewCanvas"></canvas>
           </div>
-          <p class="canvas-tip">Arrastra dentro de la imagen para definir el recorte.</p>
         </div>
       </section>
 
       <aside class="side-panel" aria-label="Controles y resultado OCR">
-        <section class="panel-block" aria-labelledby="selectionTitle">
-          <p class="eyebrow">Selección</p>
-          <h2 id="selectionTitle">Área activa</h2>
-          <dl class="selection-grid">
-            <div>
-              <dt>X</dt>
-              <dd id="selectionX">0</dd>
-            </div>
-            <div>
-              <dt>Y</dt>
-              <dd id="selectionY">0</dd>
-            </div>
-            <div>
-              <dt>Ancho</dt>
-              <dd id="selectionWidth">0</dd>
-            </div>
-            <div>
-              <dt>Alto</dt>
-              <dd id="selectionHeight">0</dd>
-            </div>
-          </dl>
-          <div class="button-stack">
-            <button id="ocrSelectionButton" type="button" class="button button-primary" disabled>OCR selección</button>
-            <button id="ocrFullButton" type="button" class="button button-secondary" disabled>Imagen completa</button>
-            <button id="clearSelectionButton" type="button" class="button button-ghost" disabled>Limpiar</button>
-          </div>
-        </section>
-
         <section class="panel-block" aria-labelledby="outputTitle">
           <div class="panel-heading">
             <div>
