@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" style="color-scheme: dark;">
+<html lang="es">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -46,9 +46,11 @@
         </div>
 
         <div class="input-layout">
-          <div id="dropZone" class="drop-zone" tabindex="0" aria-label="Zona para arrastrar una imagen o carpeta">
+          <div id="dropZone" class="drop-zone" tabindex="0" role="button"
+               aria-label="Zona para arrastrar una imagen o carpeta. Pulsa Enter o Espacio para abrir el selector de archivo.">
             <p class="drop-title">Suelta una imagen o carpeta aquí</p>
             <p class="drop-copy">O pega una captura con <kbd>Ctrl</kbd> + <kbd>V</kbd>.</p>
+            <p class="drop-hint">PNG, JPEG, GIF, BMP, TIFF, WEBP · máx. 10 MB</p>
           </div>
 
           <section class="image-collection" aria-labelledby="imageCollectionTitle">
@@ -104,7 +106,8 @@
             </div>
           </div>
           <div id="canvasViewport" class="canvas-viewport">
-            <canvas id="previewCanvas" aria-label="Vista previa de imagen. Arrastra para seleccionar un área de texto."></canvas>
+            <canvas id="previewCanvas" tabindex="0" role="application"
+                    aria-label="Vista previa de imagen. Arrastra para seleccionar un área de texto."></canvas>
           </div>
         </div>
       </section>
@@ -116,31 +119,35 @@
               <p class="eyebrow">Salida</p>
               <h2 id="outputTitle">Texto extraído</h2>
             </div>
-            <span id="requestMeta" class="request-meta">Sin peticiones</span>
+            <span id="requestMeta" class="request-meta" aria-live="polite" aria-atomic="true">Sin peticiones</span>
           </div>
           <label class="sr-only" for="ocrOutput">Texto OCR</label>
-          <textarea id="ocrOutput" rows="6" spellcheck="false" placeholder="El texto reconocido aparecerá aquí…"></textarea>
+          <textarea id="ocrOutput" rows="6" spellcheck="false"
+                    aria-describedby="notice" aria-invalid="false"
+                    placeholder="El texto reconocido aparecerá aquí…"></textarea>
           <div class="button-row">
             <button id="translateOutputButton" type="button" class="button button-primary" disabled>Traducir al español</button>
             <button id="copyOutputButton" type="button" class="button button-secondary">Copiar OCR</button>
             <button id="clearOutputButton" type="button" class="button button-ghost">Limpiar OCR</button>
           </div>
 
-          <div class="translation-block" aria-labelledby="translationTitle">
+          <section class="translation-block" aria-labelledby="translationTitle">
             <div class="panel-heading panel-heading-compact">
               <div>
                 <p class="eyebrow">Traducción</p>
                 <h2 id="translationTitle">Texto traducido</h2>
               </div>
-              <span id="translationMeta" class="request-meta">Sin traducciones</span>
+              <span id="translationMeta" class="request-meta" aria-live="polite" aria-atomic="true">Sin traducciones</span>
             </div>
             <label class="sr-only" for="translationOutput">Texto traducido</label>
-            <textarea id="translationOutput" rows="6" spellcheck="false" placeholder="La traducción aparecerá aquí…"></textarea>
+            <textarea id="translationOutput" rows="6" spellcheck="false"
+                      aria-describedby="notice" aria-invalid="false"
+                      placeholder="La traducción aparecerá aquí…"></textarea>
             <div class="button-row">
               <button id="copyTranslationButton" type="button" class="button button-secondary" disabled>Copiar traducción</button>
               <button id="clearTranslationButton" type="button" class="button button-ghost" disabled>Limpiar traducción</button>
             </div>
-          </div>
+          </section>
 
           <p id="notice" class="notice" role="status" aria-live="polite">Carga una imagen para empezar.</p>
         </section>

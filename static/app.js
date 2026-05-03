@@ -10,6 +10,7 @@ const elements = {
   canvasFrame: document.querySelector("#canvasFrame"),
   canvasViewport: document.querySelector("#canvasViewport"),
   previewCanvas: document.querySelector("#previewCanvas"),
+  mainEl: document.querySelector("#main"),
   clearImageButton: document.querySelector("#clearImageButton"),
   selectionX: document.querySelector("#selectionX"),
   selectionY: document.querySelector("#selectionY"),
@@ -127,6 +128,7 @@ function bindEvents() {
   });
 
   elements.dropZone.addEventListener("keydown", (event) => {
+    if (state.busy) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       elements.fileInput.click();
@@ -790,6 +792,8 @@ function updateControlState() {
   const hasTranslatedText = Boolean(elements.translationOutput.value.trim());
   const canTranslate = hasOcrText && state.translationReady && !state.busy;
 
+  elements.mainEl.setAttribute("aria-busy", String(state.busy));
+  elements.dropZone.setAttribute("aria-disabled", String(state.busy));
   elements.chooseFileButton.disabled = state.busy;
   elements.chooseFolderButton.disabled = state.busy;
   elements.clipboardButton.disabled = state.busy;
@@ -1021,6 +1025,8 @@ function clearTranslationOutput({ keepNotice } = {}) {
 function setNotice(tone, message) {
   elements.notice.dataset.tone = tone;
   elements.notice.textContent = message;
+  const isError = tone === "error";
+  elements.ocrOutput.setAttribute("aria-invalid", String(isError));
 }
 
 function getCanvasPoint(event) {

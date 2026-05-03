@@ -7,6 +7,8 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 from hf_env import configure_runtime_model_access
 from ocr_service import ocr_service
@@ -27,6 +29,19 @@ ALLOWED_IMAGE_MEDIA_TYPES = {
 MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 app = FastAPI(title="Manga OCR Reader")
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["X-XSS-Protection"] = "0"
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
@@ -81,6 +96,15 @@ async def read_and_validate_image_upload(image: UploadFile) -> bytes:
                 "El archivo excede el tamaño máximo permitido de 10 MB."
             ),
         )
+
+    # Validate the actual file content, not just the declared MIME type
+    from io import BytesIO
+    from PIL import Image as _Image, UnidentifiedImageError as _UnidentifiedImageError
+    try:
+        with _Image.open(BytesIO(image_bytes)) as img:
+            img.verify()
+    except (_UnidentifiedImageError, Exception):
+        raise HTTPException(status_code=400, detail="El archivo no es una imagen válida.")
 
     return image_bytes
 

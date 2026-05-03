@@ -1,3 +1,6 @@
+html {
+  color-scheme: dark;
+}
 :root {
   --paper: #1a1820;
   --paper-strong: #201e26;
@@ -218,6 +221,13 @@ h2 {
 
 .drop-copy {
   margin: 8px 0 0;
+}
+
+.drop-hint {
+  margin: 8px 0 0;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.03em;
 }
 
 .image-collection {
@@ -550,7 +560,7 @@ button,
 #translationOutput:focus-visible,
 .image-picker:focus-visible,
 .button:focus-visible {
-  outline: 3px solid rgba(77, 184, 158, 0.38);
+  outline: 2px solid var(--cutline);
   outline-offset: 3px;
 }
 
